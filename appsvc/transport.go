@@ -21,5 +21,15 @@ func NewHandler(s Service, router *httprouter.Router) http.Handler {
 }
 
 func decodeGetAppsRequest(ctx context.Context, r *http.Request) (interface{}, error) {
-	return GetAppsRequest{}, nil
+		// limit
+	str_limit := r.URL.Query().Get("limit")
+	int_limit, err := strconv.Atoi(str_limit)
+	if err != nil {
+		// log.Fatal(err.Error())
+		log.Println(err)
+	}
+
+	// cursor
+	str_cursor := r.URL.Query().Get("cursor")
+	return GetAppsRequest{Limit: int_limit, Cursor: str_cursor}, nil
 }
