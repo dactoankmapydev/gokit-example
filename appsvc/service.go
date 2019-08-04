@@ -19,7 +19,7 @@ func New() Service {
 func (s *service) GetApps(ctx context.Context, r GetAppsRequest) (*GetAppsResponse, error) {
 
 	return &GetAppsResponse{
-		Total: 0,
+		Total: r.Limit,
 		Apps:  []app.App{},
 	}, nil
 }
