@@ -21,5 +21,6 @@ func (s *service) GetApps(ctx context.Context, r GetAppsRequest) (*GetAppsRespon
 	return &GetAppsResponse{
 		Total: r.Limit,
 		Apps:  []app.App{},
+		Cursor: r.Cursor,
 	}, nil
 }
