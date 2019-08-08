@@ -2,10 +2,18 @@ package appsvc
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
+	"strconv"
 
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/julienschmidt/httprouter"
+)
+
+var (
+	ErrParameter = errors.New("The input parameter must be an integer")
+	ErrEmpty     = errors.New("No input parameter")
 )
 
 // NewHandler returns new http.Handler that routes http request to service
@@ -17,19 +25,44 @@ func NewHandler(s Service, router *httprouter.Router) http.Handler {
 		kithttp.EncodeJSONResponse,
 	))
 
+	router.Handler(http.MethodPost, "/api/v1/main-apps/", kithttp.NewServer(
+		makeRegisterAppEndpoint(s),
+		decodeRegisterAppRequests,
+		kithttp.EncodeJSONResponse,
+	))
+
+	// router.Handler(http.MethodPost, "/api/v1/main-apps/{id}", kithttp.NewServer(
+	// 	makeGetAppDetailEndpoint(s),
+	// 	decodeGetAppDetailRequest,
+	// 	kithttp.EncodeJSONResponse,
+	// ))
+
 	return router
 }
 
 func decodeGetAppsRequest(ctx context.Context, r *http.Request) (interface{}, error) {
-		// limit
-	str_limit := r.URL.Query().Get("limit")
-	int_limit, err := strconv.Atoi(str_limit)
-	if err != nil {
-		// log.Fatal(err.Error())
-		log.Println(err)
+	q := r.URL.Query()
+	req := GetAppsRequest{Cursor: q.Get("cursor")}
+	if qLimit := q.Get("limit"); qLimit != "" {
+		intLimit, err := strconv.Atoi(qLimit)
+		if err != nil {
+			return nil, ErrParameter
+		}
+		req.Limit = intLimit
 	}
-
-	// cursor
-	str_cursor := r.URL.Query().Get("cursor")
-	return GetAppsRequest{Limit: int_limit, Cursor: str_cursor}, nil
+	return req, nil
 }
+
+func decodeRegisterAppRequests(ctx context.Context, r *http.Request) (interface{}, error) {
+	var request RegisterAppRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		return nil, err
+	}
+	return request, nil
+}
+
+// func decodeGetAppDetailRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+// 	reId := r.URL.Query.Get("id")
+// 	return GetAppDetailRequest{Id: reId}, nil
+
+// }
