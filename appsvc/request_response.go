@@ -23,7 +23,7 @@ type GetMainAppResponse struct {
 }
 
 type RegisterAppRequest struct {
-	Platform      app.Platform
+	Platform      string
 	BundleId      string
 	PackageName   string
 	Name          string
@@ -50,7 +50,7 @@ type GetAppDetailResponse struct {
 type GetMiniAppOfAppRequest struct {
 	Limit  int
 	Cursor string
-	Status app.Status
+	Status string
 }
 
 type GetMiniAppOfAppResponse struct {
@@ -59,17 +59,21 @@ type GetMiniAppOfAppResponse struct {
 	Cursor Cursor        `json:"cursor"`
 }
 
-type UpdateMiniAppOfAppRequest struct {
+type UpdateMiniAppOfMainAppRequest struct {
 	MainAppID string
 	MiniAppID string
-	Status    app.MiniAppType
+	Status    string
+}
+
+type UpdateMiniAppOfMainAppResponse struct {
+	App app.MiniApp `json:"app"`
 }
 
 type GetMiniAppRequest struct {
 	Limit  int
 	Offset int
 	Cursor string
-	Status app.MiniAppType
+	Status string
 }
 
 type GetMiniAppResponse struct {
@@ -88,19 +92,48 @@ type GetMiniAppDetailResponse struct {
 }
 
 type CreateMiniAppRequest struct {
-	Platform      app.Platform
+	Platform      string
 	BundleId      string
 	PackageName   string
 	DisplayName   string
 	AppName       string
-	Type          app.MiniAppType
+	Type          string
 	TargetVersion string
 	Icon          string
 	Version       string
 	Permissions   []string
-	Bundle        app.BundleType
+	Bundle        string
 }
 
 type CreateMiniAppResponse struct {
+	App app.MiniApp `json:"app"`
+}
+
+type UpdateMiniAppRequest struct {
+	Platform      string
+	BundleId      string
+	PackageName   string
+	DisplayName   string
+	AppName       string
+	Type          string
+	TargetVersion string
+	Icon          string
+	Version       string
+	Permissions   []string
+	Id            string
+}
+
+type UpdateMiniAppResponse struct {
+	App app.MiniApp `json:"app"`
+}
+
+type DeployMiniAppRequest struct {
+	Platform string
+	Version  string
+	Id       string
+	Bundle   string
+}
+
+type DeployMiniAppResponse struct {
 	App app.MiniApp `json:"app"`
 }
