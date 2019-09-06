@@ -54,9 +54,9 @@ type GetMiniAppOfAppRequest struct {
 }
 
 type GetMiniAppOfAppResponse struct {
-	Total  int           `json:"total"`
-	Apps   []app.MiniApp `json:"apps"`
-	Cursor Cursor        `json:"cursor"`
+	Total  int         `json:"total"`
+	Apps   app.MiniApp `json:"apps"`
+	Cursor Cursor      `json:"cursor"`
 }
 
 type UpdateMiniAppOfMainAppRequest struct {

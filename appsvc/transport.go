@@ -147,6 +147,7 @@ func decodeGetMiniAppDetailRequest(ctx context.Context, r *http.Request) (interf
 }
 
 func decodeCreateMiniAppRequests(ctx context.Context, r *http.Request) (interface{}, error) {
+
 	file, handler, err := r.FormFile("bundle")
 	if err != nil {
 		return nil, ErrFile
@@ -202,13 +203,12 @@ func decodeUpdateMiniAppOfMainApp(ctx context.Context, r *http.Request) (interfa
 }
 
 func decodeUpdateMiniApp(ctx context.Context, r *http.Request) (interface{}, error) {
-	pid := httprouter.ParamsFromContext(ctx).ByName("id")
-	if err := json.NewDecoder(r.Body).Decode(&UpdateMiniAppRequest{}); err != nil {
+	var request UpdateMiniAppRequest
+	// pid := httprouter.ParamsFromContext(ctx).ByName("id")
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
-	return UpdateMiniAppRequest{
-		Id: pid,
-	}, nil
+	return request, nil
 }
 
 func decodeDeployMiniApp(ctx context.Context, r *http.Request) (interface{}, error) {
