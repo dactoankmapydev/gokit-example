@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-
+	"fmt"
 	"miniapp_backend/app"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,7 +15,7 @@ type repoImpl struct {
 }
 
 type Repository interface {
-	RegisterApp(main app.MainApp) (primitive.ObjectID, error)
+	RegisterApp(main app.MainApp) (string, error)
 	GetAppDetail(id string) (app.MainApp, error)
 	GetMainApp() ([]app.MainApp, error)
 	CreateMiniApp(mini app.MiniApp) (primitive.ObjectID, error)
@@ -35,7 +35,6 @@ func NewRepo(db *mongo.Database) Repository {
 
 func (mongo *repoImpl) UpdateMiniApp(id string, mini app.MiniApp) (app.MiniApp, primitive.ObjectID, error) {
 	objID, err := primitive.ObjectIDFromHex(id)
-
 	if err != nil {
 		panic(err)
 	}
@@ -62,29 +61,46 @@ func (mongo *repoImpl) UpdateMiniApp(id string, mini app.MiniApp) (app.MiniApp, 
 	if err != nil {
 		panic(err)
 	}
-
 	return mini, objID, nil
 
 }
-func (mongo *repoImpl) RegisterApp(main app.MainApp) (primitive.ObjectID, error) {
+
+func (mongo *repoImpl) RegisterApp(main app.MainApp) (string, error) {
 	result, err := mongo.Db.Collection("main_app").InsertOne(context.Background(), &main)
 	if err != nil {
 		panic(err)
 	}
-	newID := result.InsertedID.(primitive.ObjectID)
+	newID := result.InsertedID.(primitive.ObjectID).Hex()
 	return newID, nil
+
 }
 
 func (mongo *repoImpl) GetAppDetail(id string) (app.MainApp, error) {
-
 	objID, err := primitive.ObjectIDFromHex(id)
-	mainApp := app.MainApp{}
-	err = mongo.Db.Collection("main_app").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&mainApp)
 	if err != nil {
-		// return ErrID, nil
+		panic(err)
+
+	}
+	result := mongo.Db.Collection("main_app").FindOne(context.Background(), bson.M{"_id": objID})
+	mainApp := app.MainApp{}
+	fmt.Println(objID.Hex())
+	if err := result.Decode(&mainApp); err != nil {
+
 		panic(err)
 	}
-	return mainApp, nil
+	response := app.MainApp{
+		Id:            objID.Hex(),
+		Platform:      mainApp.Platform,
+		AppStoreUrl:   mainApp.AppStoreUrl,
+		PackageName:   mainApp.PackageName,
+		Name:          mainApp.Name,
+		GooglePlayUrl: mainApp.GooglePlayUrl,
+		Icon:          mainApp.Icon,
+		Version:       mainApp.Version,
+		BundleId:      mainApp.BundleId,
+		Events:        mainApp.Events,
+	}
+	return response, nil
 }
 
 func (mongo *repoImpl) GetMiniAppDetail(id string) (app.MiniApp, error) {
