@@ -2,16 +2,10 @@ package appsvc
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"miniapp_backend/app"
 	"miniapp_backend/repository"
 
 	"github.com/julienschmidt/httprouter"
-)
-
-var (
-	ErrID = errors.New("ID does not exist")
 )
 
 type Service interface {
@@ -51,10 +45,7 @@ func (s *service) GetMainApp(Ctx context.Context, r GetMainAppRequest) (*GetMain
 }
 
 func (s *service) GetAppDetail(Ctx context.Context, r GetAppDetailRequest) (*GetAppDetailResponse, error) {
-
-	id := httprouter.ParamsFromContext(Ctx).ByName("id")
-	result, err := s.AppRepo.GetAppDetail(id)
-	fmt.Println(result)
+	result, err := s.AppRepo.GetAppDetail(r.Id)
 	if err != nil {
 		panic(err)
 	}
@@ -77,7 +68,6 @@ func (s *service) GetAppDetail(Ctx context.Context, r GetAppDetailRequest) (*Get
 }
 
 func (s *service) RegisterApp(Ctx context.Context, r RegisterAppRequest) (*RegisterAppResponse, error) {
-
 	registerApp := app.MainApp{
 		BundleId:      r.BundleId,
 		Platform:      r.Platform,
@@ -92,7 +82,6 @@ func (s *service) RegisterApp(Ctx context.Context, r RegisterAppRequest) (*Regis
 	if err != nil {
 		panic(err)
 	}
-
 	return &RegisterAppResponse{
 		App: app.MainApp{
 			Id:            id,
@@ -133,16 +122,13 @@ func (s *service) GetMiniofMainApp(Ctx context.Context, r GetMiniAppOfAppRequest
 		},
 		Cursor: Cursor{},
 	}, nil
-
 }
 
 func (s *service) GetMiniApp(Ctx context.Context, r GetMiniAppRequest) (*GetMiniAppResponse, error) {
-
 	listResult, err := s.AppRepo.GetMiniApp()
 	if err != nil {
 		panic(err)
 	}
-
 	return &GetMiniAppResponse{
 		Total:  r.Limit,
 		Apps:   listResult,
@@ -151,12 +137,10 @@ func (s *service) GetMiniApp(Ctx context.Context, r GetMiniAppRequest) (*GetMini
 }
 
 func (s *service) GetMiniAppDetail(Ctx context.Context, r GetMiniAppDetailRequest) (*GetMiniAppDetailResponse, error) {
-	id := httprouter.ParamsFromContext(Ctx).ByName("id")
-	result, err := s.AppRepo.GetMiniAppDetail(id)
+	result, err := s.AppRepo.GetMiniAppDetail(r.Id)
 	if err != nil {
 		panic(err)
 	}
-
 	return &GetMiniAppDetailResponse{
 		App: app.MiniApp{
 			Id:            result.Id,
@@ -178,7 +162,6 @@ func (s *service) GetMiniAppDetail(Ctx context.Context, r GetMiniAppDetailReques
 }
 
 func (s *service) CreateMiniApp(Ctx context.Context, r CreateMiniAppRequest) (*CreateMiniAppResponse, error) {
-
 	createMiniApp := app.MiniApp{
 		Platform:      r.Platform,
 		BundleId:      r.BundleId,
@@ -195,7 +178,6 @@ func (s *service) CreateMiniApp(Ctx context.Context, r CreateMiniAppRequest) (*C
 	if err != nil {
 		panic(err)
 	}
-
 	return &CreateMiniAppResponse{
 		App: app.MiniApp{
 			Id:            id,
@@ -223,9 +205,6 @@ func (s *service) UpdateMiniAppOfMainApp(Ctx context.Context, r UpdateMiniAppOfM
 }
 
 func (s *service) UpdateMiniApp(Ctx context.Context, r UpdateMiniAppRequest) (*UpdateMiniAppResponse, error) {
-
-	id := httprouter.ParamsFromContext(Ctx).ByName("id")
-
 	updateMiniApp := app.MiniApp{
 		Platform:      r.Platform,
 		BundleId:      r.BundleId,
@@ -238,11 +217,10 @@ func (s *service) UpdateMiniApp(Ctx context.Context, r UpdateMiniAppRequest) (*U
 		Version:       r.Version,
 		Permissions:   r.Permissions,
 	}
-	result, resultID, err := s.AppRepo.UpdateMiniApp(id, updateMiniApp)
+	result, resultID, err := s.AppRepo.UpdateMiniApp(r.Id, updateMiniApp)
 	if err != nil {
 		panic(err)
 	}
-
 	return &UpdateMiniAppResponse{
 		App: app.MiniApp{
 			Id:            resultID,
@@ -261,9 +239,7 @@ func (s *service) UpdateMiniApp(Ctx context.Context, r UpdateMiniAppRequest) (*U
 }
 
 func (s *service) DeployMiniApp(Ctx context.Context, r DeployMiniAppRequest) (*DeployMiniAppResponse, error) {
-
-	id := httprouter.ParamsFromContext(Ctx).ByName("id")
-	result, err := s.AppRepo.GetMiniofMainApp(id)
+	result, err := s.AppRepo.GetMiniofMainApp(r.Id)
 	if err != nil {
 		panic(err)
 	}
@@ -274,5 +250,4 @@ func (s *service) DeployMiniApp(Ctx context.Context, r DeployMiniAppRequest) (*D
 			Version:  result.Version,
 		},
 	}, nil
-
 }
