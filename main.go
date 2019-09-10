@@ -8,23 +8,19 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 
+	"miniapp_backend/app"
 	"miniapp_backend/appsvc"
 	"miniapp_backend/driver"
-	"miniapp_backend/repository"
 )
 
 func main() {
 	router := httprouter.New()
-	MongoCLient := driver.ConnectMongoDB()
+	mongoConn := driver.ConnectMongoDB()
 
 	{
-		appRepo := repository.NewRepo(MongoCLient.Client.Database("app"))
+		appRepo := app.NewRepo(mongoConn.Client.Database("app"))
 		s := appsvc.New(appRepo)
 		appsvc.NewHandler(s, router)
-
-		// result, _ := appRepo.GetByID("5d72757113cd62928e36d89c")
-		// fmt.Println(result)
-
 	}
 
 	// router.PanicHandler = func(w http.ResponseWriter, r *http.Request, panic interface{}) {

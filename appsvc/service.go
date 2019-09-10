@@ -2,8 +2,8 @@ package appsvc
 
 import (
 	"context"
+	"fmt"
 	"miniapp_backend/app"
-	"miniapp_backend/repository"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -22,10 +22,10 @@ type Service interface {
 }
 
 type service struct {
-	AppRepo repository.Repository
+	AppRepo app.Repository
 }
 
-func New(appRepo repository.Repository) Service {
+func New(appRepo app.Repository) Service {
 
 	return &service{
 		AppRepo: appRepo,
@@ -33,7 +33,7 @@ func New(appRepo repository.Repository) Service {
 }
 
 func (s *service) GetMainApp(Ctx context.Context, r GetMainAppRequest) (*GetMainAppResponse, error) {
-	listResult, err := s.AppRepo.GetMainApp()
+	listResult, err := s.AppRepo.GetAllMainApp()
 	if err != nil {
 		panic(err)
 	}
@@ -45,11 +45,11 @@ func (s *service) GetMainApp(Ctx context.Context, r GetMainAppRequest) (*GetMain
 }
 
 func (s *service) GetAppDetail(Ctx context.Context, r GetAppDetailRequest) (*GetAppDetailResponse, error) {
-	result, err := s.AppRepo.GetAppDetail(r.Id)
+	fmt.Println(r.Id)
+	result, err := s.AppRepo.GetMainAppID(r.Id)
 	if err != nil {
 		panic(err)
 	}
-
 	return &GetAppDetailResponse{
 		App: app.MainApp{
 			Id:            result.Id,
@@ -63,7 +63,7 @@ func (s *service) GetAppDetail(Ctx context.Context, r GetAppDetailRequest) (*Get
 			BundleId:      result.BundleId,
 			Events:        result.Events,
 		},
-		Ica: "5",
+		Ica: "",
 	}, nil
 }
 
@@ -78,7 +78,7 @@ func (s *service) RegisterApp(Ctx context.Context, r RegisterAppRequest) (*Regis
 		Icon:          r.Icon,
 		Version:       r.Version,
 	}
-	id, err := s.AppRepo.RegisterApp(registerApp)
+	id, err := s.AppRepo.CreateMainApp(registerApp)
 	if err != nil {
 		panic(err)
 	}
@@ -94,7 +94,7 @@ func (s *service) RegisterApp(Ctx context.Context, r RegisterAppRequest) (*Regis
 			Icon:          r.Icon,
 			Version:       r.Version,
 		},
-		Ica: "1",
+		Ica: "",
 	}, nil
 }
 
@@ -125,7 +125,7 @@ func (s *service) GetMiniofMainApp(Ctx context.Context, r GetMiniAppOfAppRequest
 }
 
 func (s *service) GetMiniApp(Ctx context.Context, r GetMiniAppRequest) (*GetMiniAppResponse, error) {
-	listResult, err := s.AppRepo.GetMiniApp()
+	listResult, err := s.AppRepo.GetAllMiniApp()
 	if err != nil {
 		panic(err)
 	}
@@ -137,7 +137,8 @@ func (s *service) GetMiniApp(Ctx context.Context, r GetMiniAppRequest) (*GetMini
 }
 
 func (s *service) GetMiniAppDetail(Ctx context.Context, r GetMiniAppDetailRequest) (*GetMiniAppDetailResponse, error) {
-	result, err := s.AppRepo.GetMiniAppDetail(r.Id)
+	fmt.Println(r.Id)
+	result, err := s.AppRepo.GetMiniAppID(r.Id)
 	if err != nil {
 		panic(err)
 	}
@@ -205,6 +206,8 @@ func (s *service) UpdateMiniAppOfMainApp(Ctx context.Context, r UpdateMiniAppOfM
 }
 
 func (s *service) UpdateMiniApp(Ctx context.Context, r UpdateMiniAppRequest) (*UpdateMiniAppResponse, error) {
+	fmt.Println(r.Id)
+
 	updateMiniApp := app.MiniApp{
 		Platform:      r.Platform,
 		BundleId:      r.BundleId,
@@ -217,7 +220,7 @@ func (s *service) UpdateMiniApp(Ctx context.Context, r UpdateMiniAppRequest) (*U
 		Version:       r.Version,
 		Permissions:   r.Permissions,
 	}
-	result, resultID, err := s.AppRepo.UpdateMiniApp(r.Id, updateMiniApp)
+	result, resultID, err := s.AppRepo.Update(r.Id, updateMiniApp)
 	if err != nil {
 		panic(err)
 	}
@@ -239,6 +242,7 @@ func (s *service) UpdateMiniApp(Ctx context.Context, r UpdateMiniAppRequest) (*U
 }
 
 func (s *service) DeployMiniApp(Ctx context.Context, r DeployMiniAppRequest) (*DeployMiniAppResponse, error) {
+	fmt.Println(r.Id)
 	result, err := s.AppRepo.GetMiniofMainApp(r.Id)
 	if err != nil {
 		panic(err)

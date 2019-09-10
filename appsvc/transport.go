@@ -6,10 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -19,7 +17,9 @@ import (
 
 var (
 	ErrParameter = errors.New("The input parameter must be an integer")
-	ErrFile      = errors.New("Error Retrieving the File")
+	ErrUploadFile      = errors.New("Error Retrieving the File")
+	ErrCreateTempFile = errors.New("Cannot create temporary file")
+	ErrWriteTempFile  = errors.New("Failed to write to temporary file")
 )
 
 // NewHandler returns new http.Handler that routes http request to service
@@ -150,35 +150,35 @@ func decodeCreateMiniAppRequests(ctx context.Context, r *http.Request) (interfac
 
 	file, handler, err := r.FormFile("bundle")
 	if err != nil {
-		return nil, ErrFile
+		return nil, ErrUploadFile
 	}
 	defer file.Close()
+
+	// Create a temp file
 	fileType := (handler.Filename)[strings.LastIndex(handler.Filename, ".")+1:]
-	// filename := handler.Filename
-
-	tempFile, err := ioutil.TempFile("uploads", "*."+fileType)
+	tempFile, err := ioutil.TempFile(os.TempDir(), "*."+fileType)
 	if err != nil {
-		panic(err)
+		return nil, ErrCreateTempFile
 	}
-	defer tempFile.Close()
-
-	path, err := filepath.Abs((tempFile.Name()))
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("path:", path)
-
-	// if _, err := os.Stat(path); err == nil {
-	// 	log.Printf("file exist")
-	// } else if os.IsNotExist(err) {
-	// 	log.Printf("file not exist")
-	// }
+	
+	// Cleaning up by removing the file
+	defer os.Remove(tempFile.Name())
+	fmt.Println("Create a temp file: ", tempFile.Name())
 
 	fileBytes, err := ioutil.ReadAll(file)
 	if err != nil {
 		return err, nil
 	}
-	tempFile.Write(fileBytes)
+
+	// Write to the file
+	if _, err = tempFile.Write(fileBytes); err != nil {
+		return nil, ErrWriteTempFile
+	}
+
+	// Close the file
+	if err := tempFile.Close(); err != nil {
+		panic(err)
+	}
 
 	return CreateMiniAppRequest{
 		Platform:      r.FormValue("platform"),
@@ -204,7 +204,6 @@ func decodeUpdateMiniAppOfMainApp(ctx context.Context, r *http.Request) (interfa
 
 func decodeUpdateMiniApp(ctx context.Context, r *http.Request) (interface{}, error) {
 	var request UpdateMiniAppRequest
-	// pid := httprouter.ParamsFromContext(ctx).ByName("id")
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
@@ -215,48 +214,29 @@ func decodeDeployMiniApp(ctx context.Context, r *http.Request) (interface{}, err
 	pid := httprouter.ParamsFromContext(ctx).ByName("id")
 	file, handler, err := r.FormFile("bundle")
 	if err != nil {
-		return nil, ErrFile
+		return nil, ErrUploadFile
 	}
 	defer file.Close()
 
-	folderUpload := filepath.Join(".", "uploads")
-	if _, err := os.Stat("./uploads"); err == nil {
-		tempFile, err := ioutil.TempFile(folderUpload, handler.Filename)
-		if err != nil {
-			panic(err)
-		}
-		defer tempFile.Close()
+	fileType := (handler.Filename)[strings.LastIndex(handler.Filename, ".")+1:]
+	tempFile, err := ioutil.TempFile(os.TempDir(), "*."+fileType)
+	if err != nil {
+		return nil, ErrCreateTempFile
+	}
 
-		path, err := filepath.Abs((tempFile.Name()))
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("path:", path)
-		fileBytes, err := ioutil.ReadAll(file)
-		if err != nil {
-			return err, nil
-		}
-		tempFile.Write(fileBytes)
+	defer os.Remove(tempFile.Name())
 
-	} else if os.IsNotExist(err) {
-		os.MkdirAll(folderUpload, os.ModePerm)
-		fileType := (handler.Filename)[strings.LastIndex(handler.Filename, ".")+1:]
-		tempFile, err := ioutil.TempFile(folderUpload, "*."+fileType)
-		if err != nil {
-			panic(err)
-		}
-		defer tempFile.Close()
+	fileBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err, nil
+	}
 
-		path, err := filepath.Abs((tempFile.Name()))
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("path:", path)
-		fileBytes, err := ioutil.ReadAll(file)
-		if err != nil {
-			return err, nil
-		}
-		tempFile.Write(fileBytes)
+	if _, err = tempFile.Write(fileBytes); err != nil {
+		return nil, ErrWriteTempFile
+	}
+
+	if err := tempFile.Close(); err != nil {
+		panic(err)
 	}
 
 	return DeployMiniAppRequest{
@@ -265,3 +245,4 @@ func decodeDeployMiniApp(ctx context.Context, r *http.Request) (interface{}, err
 		Version:  r.FormValue("version"),
 	}, nil
 }
+

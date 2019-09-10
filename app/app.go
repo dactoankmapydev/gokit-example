@@ -1,12 +1,7 @@
 package app
 
-import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
-)
-
-// App
 type MainApp struct {
-	Id            string   `json:"id,omitempty" bson:"id,omitempty"`
+	Id            string   `json:"id,omitempty" bson:"_id,omitempty"`
 	Platform      string   `json:"platform" bson:"platform"`
 	BundleId      string   `json:"bundleId" bson:"bundleId"`
 	PackageName   string   `json:"packageName" bson:"packageName"`
@@ -18,18 +13,17 @@ type MainApp struct {
 	Events        []string `json:"events" bson:"events"`
 }
 
-// MiniApp
 type MiniApp struct {
-	Id            primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
-	Platform      string             `json:"platform" bson:"platform"`
-	BundleId      string             `json:"bundleId" bson:"bundleId"`
-	PackageName   string             `json:"packageName" bson:"packageName"`
-	DisplayName   string             `json:"displayName" bson:"displayName"`
-	AppName       string             `json:"appName" bson:"appName"`
-	Status        string             `json:"status" bson:"status"`
-	Type          string             `json:"type" bson:"type"`
-	Icon          string             `json:"icon" bson:"icon"`
-	TargetVersion string             `json:"targetVersion" bson:"targetVersion"`
-	Version       string             `json:"version" bson:"version"`
-	Permissions   []string           `json:"permissions" bson:"permissions"`
+	Id            string   `json:"id,omitempty" bson:"_id,omitempty"`
+	Platform      string   `json:"platform" bson:"platform"`
+	BundleId      string   `json:"bundleId" bson:"bundleId"`
+	PackageName   string   `json:"packageName" bson:"packageName"`
+	DisplayName   string   `json:"displayName" bson:"displayName"`
+	AppName       string   `json:"appName" bson:"appName"`
+	Status        string   `json:"status" bson:"status"`
+	Type          string   `json:"type" bson:"type"`
+	Icon          string   `json:"icon" bson:"icon"`
+	TargetVersion string   `json:"targetVersion" bson:"targetVersion"`
+	Version       string   `json:"version" bson:"version"`
+	Permissions   []string `json:"permissions" bson:"permissions"`
 }
