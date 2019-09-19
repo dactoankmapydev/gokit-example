@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	ErrParameter = errors.New("The input parameter must be an integer")
-	ErrUploadFile      = errors.New("Error Retrieving the File")
+	// ErrParameter      = errors.New("The input parameter must be an integer")
+	ErrUploadFile     = errors.New("Error Retrieving the File")
 	ErrCreateTempFile = errors.New("Cannot create temporary file")
 	ErrWriteTempFile  = errors.New("Failed to write to temporary file")
 )
@@ -90,14 +90,26 @@ func NewHandler(s Service, router *httprouter.Router) http.Handler {
 
 func decodeGetMainAppRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	q := r.URL.Query()
-	req := GetMainAppRequest{Cursor: q.Get("cursor")}
+	req := GetMainAppRequest{
+		Cursor: q.Get("cursor"),
+	}
+
 	if qLimit := q.Get("limit"); qLimit != "" {
 		intLimit, err := strconv.Atoi(qLimit)
 		if err != nil {
-			return nil, ErrParameter
+			return nil, err
 		}
-		req.Limit = intLimit
+		req.Limit = int64(intLimit)
 	}
+
+	// if qOffset := q.Get("skip"); qOffset != "" {
+	// 	intOffset, err := strconv.Atoi(qOffset)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	req.Offset = int64(intOffset)
+	// }
+
 	return req, nil
 }
 
@@ -121,7 +133,7 @@ func decodeGetMiniofMainAppRequest(ctx context.Context, r *http.Request) (interf
 	if qLimit := q.Get("limit"); qLimit != "" {
 		intLimit, err := strconv.Atoi(qLimit)
 		if err != nil {
-			return nil, ErrParameter
+			return nil, err
 		}
 		req.Limit = intLimit
 	}
@@ -134,9 +146,9 @@ func decodeGetMiniAppRequest(ctx context.Context, r *http.Request) (interface{},
 	if qLimit := q.Get("limit"); qLimit != "" {
 		intLimit, err := strconv.Atoi(qLimit)
 		if err != nil {
-			return nil, ErrParameter
+			return nil, err
 		}
-		req.Limit = intLimit
+		req.Limit = int64(intLimit)
 	}
 	return req, nil
 }
@@ -160,7 +172,7 @@ func decodeCreateMiniAppRequests(ctx context.Context, r *http.Request) (interfac
 	if err != nil {
 		return nil, ErrCreateTempFile
 	}
-	
+
 	// Cleaning up by removing the file
 	defer os.Remove(tempFile.Name())
 	fmt.Println("Create a temp file: ", tempFile.Name())
@@ -218,26 +230,70 @@ func decodeDeployMiniApp(ctx context.Context, r *http.Request) (interface{}, err
 	}
 	defer file.Close()
 
+	// Create a temp file
 	fileType := (handler.Filename)[strings.LastIndex(handler.Filename, ".")+1:]
 	tempFile, err := ioutil.TempFile(os.TempDir(), "*."+fileType)
 	if err != nil {
 		return nil, ErrCreateTempFile
 	}
 
+	// Cleaning up by removing the file
 	defer os.Remove(tempFile.Name())
+	fmt.Println("Create a temp file: ", tempFile.Name())
 
 	fileBytes, err := ioutil.ReadAll(file)
 	if err != nil {
 		return err, nil
 	}
 
+	// Write to the file
 	if _, err = tempFile.Write(fileBytes); err != nil {
 		return nil, ErrWriteTempFile
 	}
 
+	// Close the file
 	if err := tempFile.Close(); err != nil {
 		panic(err)
 	}
+	// folderUpload := filepath.Join(".", "uploads")
+	// if _, err := os.Stat("./uploads"); err == nil {
+	// 	tempFile, err := ioutil.TempFile(folderUpload, handler.Filename)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	defer tempFile.Close()
+
+	// 	path, err := filepath.Abs((tempFile.Name()))
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	fmt.Println("path:", path)
+	// 	fileBytes, err := ioutil.ReadAll(file)
+	// 	if err != nil {
+	// 		return err, nil
+	// 	}
+	// 	tempFile.Write(fileBytes)
+
+	// } else if os.IsNotExist(err) {
+	// 	os.MkdirAll(folderUpload, os.ModePerm)
+	// 	fileType := (handler.Filename)[strings.LastIndex(handler.Filename, ".")+1:]
+	// 	tempFile, err := ioutil.TempFile(folderUpload, "*."+fileType)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	defer tempFile.Close()
+
+	// 	path, err := filepath.Abs((tempFile.Name()))
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	fmt.Println("path:", path)
+	// 	fileBytes, err := ioutil.ReadAll(file)
+	// 	if err != nil {
+	// 		return err, nil
+	// 	}
+	// 	tempFile.Write(fileBytes)
+	// }
 
 	return DeployMiniAppRequest{
 		Id:       pid,
@@ -245,4 +301,3 @@ func decodeDeployMiniApp(ctx context.Context, r *http.Request) (interface{}, err
 		Version:  r.FormValue("version"),
 	}, nil
 }
-
