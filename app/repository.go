@@ -3,10 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type repoImpl struct {
@@ -16,11 +18,12 @@ type repoImpl struct {
 type Repository interface {
 	CreateMainApp(main MainApp) (string, error)
 	GetMainAppID(id string) (MainApp, error)
-	GetAllMainApp() ([]MainApp, error)
+	GetAllMainApp(limit int64, cursor string) ([]MainApp, int64, string, string, error)
+
 	CreateMiniApp(mini MiniApp) (string, error)
 	GetMiniAppID(id string) (MiniApp, error)
-	GetAllMiniApp() ([]MiniApp, error)
-	GetMiniofMainApp(id string) (MiniApp, error)
+	GetAllMiniApp(limit int64) ([]MiniApp, int64, error)
+	GetMiniofMainApp(id string) (MiniApp, int64, error)
 	DeployMiniApp(id string) (MiniApp, error)
 	Update(id string, mini MiniApp) (MiniApp, string, error)
 	// UpdateMiniAppOfMainApp(mainId,miniId string, mini MiniApp) (MiniApp, string, error)
@@ -92,7 +95,9 @@ func (mongo *repoImpl) GetMainAppID(id string) (MainApp, error) {
 	mainApp := MainApp{}
 	if err := result.Decode(&mainApp); err != nil {
 		panic(err)
+
 	}
+
 	response := MainApp{
 		Id:            mainApp.Id,
 		Platform:      mainApp.Platform,
@@ -132,11 +137,14 @@ func (mongo *repoImpl) GetMiniAppID(id string) (MiniApp, error) {
 	return response, nil
 }
 
-func (mongo *repoImpl) GetAllMiniApp() ([]MiniApp, error) {
+func (mongo *repoImpl) GetAllMiniApp(limit int64) ([]MiniApp, int64, error) {
 	listResult := []MiniApp{}
+	options := options.Find()
+	lm := options.SetLimit(limit)
 	cursor, err := mongo.Db.Collection("mini_app").Find(
 		context.Background(),
-		bson.M{})
+		bson.M{},
+		lm)
 	if err != nil {
 		panic(err)
 	}
@@ -149,27 +157,103 @@ func (mongo *repoImpl) GetAllMiniApp() ([]MiniApp, error) {
 	if err := cursor.Err(); err != nil {
 		panic(err)
 	}
-	return listResult, nil
-}
-
-func (mongo *repoImpl) GetAllMainApp() ([]MainApp, error) {
-	listResult := []MainApp{}
-	cursor, err := mongo.Db.Collection("main_app").Find(
-		context.Background(),
-		bson.M{})
+	total, err := mongo.Db.Collection("mini_app").CountDocuments(context.Background(), bson.M{})
 	if err != nil {
 		panic(err)
 	}
-	defer cursor.Close(context.Background())
-	for cursor.Next(context.Background()) {
-		result := MainApp{}
-		cursor.Decode(&result)
-		listResult = append(listResult, result)
+
+	return listResult, total, nil
+}
+
+func (mongo *repoImpl) GetAllMainApp(limit int64, cursor string) ([]MainApp, int64, string, string, error) {
+	listResult := []MainApp{}
+	result := MainApp{}
+
+	if cursor == "" {
+		lastRecords, err := mongo.Db.Collection("main_app").Find(
+			context.Background(),
+			bson.M{},
+			&options.FindOptions{Limit: &limit},
+		)
+		if err != nil {
+			panic(err)
+		}
+		defer lastRecords.Close(context.Background())
+		for lastRecords.Next(context.Background()) {
+			if err := lastRecords.Decode(&result); err != nil {
+				panic(err)
+			}
+			listResult = append(listResult, result)
+		}
+		if err := lastRecords.Err(); err != nil {
+			panic(err)
+		}
 	}
-	if err := cursor.Err(); err != nil {
+
+	if cursor != "" {
+		if (cursor[strings.LastIndex(cursor, ".")+1:]) == "next" {
+			id := strings.Split(cursor, "."+cursor[strings.LastIndex(cursor, ".")+1:])
+			nextPage, err := mongo.Db.Collection("main_app").Find(
+				context.Background(),
+				bson.M{
+					"_id": bson.M{"$gt": id[0]},
+				},
+				&options.FindOptions{Limit: &limit},
+			)
+			if err != nil {
+				panic(err)
+			}
+			defer nextPage.Close(context.Background())
+			for nextPage.Next(context.Background()) {
+				if err := nextPage.Decode(&result); err != nil {
+					panic(err)
+				}
+				listResult = append(listResult, result)
+
+			}
+			if err := nextPage.Err(); err != nil {
+				panic(err)
+			}
+		}
+		if (cursor[strings.LastIndex(cursor, ".")+1:]) == "prev" {
+			id := strings.Split(cursor, "."+cursor[strings.LastIndex(cursor, ".")+1:])
+			prevPage, err := mongo.Db.Collection("main_app").Find(
+				context.Background(),
+				bson.M{
+					"_id": bson.M{"$lt": id[0]},
+				},
+				&options.FindOptions{
+					Sort:  map[string]int{"_id": -1},
+					Limit: &limit,
+				},
+			)
+			if err != nil {
+				panic(err)
+			}
+			defer prevPage.Close(context.Background())
+			for prevPage.Next(context.Background()) {
+				if err := prevPage.Decode(&result); err != nil {
+					panic(err)
+				}
+				listResult = append(listResult, result)
+
+			}
+			if err := prevPage.Err(); err != nil {
+				panic(err)
+			}
+		}
+
+	}
+	lastIDN := result.Id + ".next"
+	lastIDP := result.Id + ".prev"
+
+	// Total documents
+	total, err := mongo.Db.Collection("main_app").CountDocuments(context.Background(), bson.M{})
+	if err != nil {
 		panic(err)
 	}
-	return listResult, nil
+
+	return listResult, total, lastIDN, lastIDP, nil
 }
 
 func (mongo *repoImpl) CreateMiniApp(mini MiniApp) (string, error) {
@@ -197,7 +281,7 @@ func (mongo *repoImpl) CreateMiniApp(mini MiniApp) (string, error) {
 	return strid, nil
 }
 
-func (mongo *repoImpl) GetMiniofMainApp(id string) (MiniApp, error) {
+func (mongo *repoImpl) GetMiniofMainApp(id string) (MiniApp, int64, error) {
 	miniApp := MiniApp{}
 	err := mongo.Db.Collection("mini_app").FindOne(
 		context.Background(),
@@ -205,7 +289,11 @@ func (mongo *repoImpl) GetMiniofMainApp(id string) (MiniApp, error) {
 	if err != nil {
 		panic(err)
 	}
-	return miniApp, nil
+	total, err := mongo.Db.Collection("mini_app").CountDocuments(context.Background(), bson.M{})
+	if err != nil {
+		panic(err)
+	}
+	return miniApp, total, nil
 }
 
 func (mongo *repoImpl) DeployMiniApp(id string) (MiniApp, error) {
