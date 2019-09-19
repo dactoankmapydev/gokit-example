@@ -10,14 +10,15 @@ type Cursor struct {
 }
 
 type GetMainAppRequest struct {
-	Limit     int
-	Offset    int
+	Limit     int64
+	Offset    int64
 	Cursor    string
 	Ownership string
+	Keyword   string
 }
 
 type GetMainAppResponse struct {
-	Total  int           `json:"total"`
+	Total  int64         `json:"total"`
 	Apps   []app.MainApp `json:"apps"`
 	Cursor Cursor        `json:"cursor"`
 }
@@ -54,7 +55,7 @@ type GetMiniAppOfAppRequest struct {
 }
 
 type GetMiniAppOfAppResponse struct {
-	Total  int         `json:"total"`
+	Total  int64       `json:"total"`
 	Apps   app.MiniApp `json:"apps"`
 	Cursor Cursor      `json:"cursor"`
 }
@@ -70,14 +71,14 @@ type UpdateMiniAppOfMainAppResponse struct {
 }
 
 type GetMiniAppRequest struct {
-	Limit  int
-	Offset int
+	Limit  int64
+	Offset int64
 	Cursor string
 	Status string
 }
 
 type GetMiniAppResponse struct {
-	Total  int           `json:"total"`
+	Total  int64         `json:"total"`
 	Apps   []app.MiniApp `json:"apps"`
 	Cursor Cursor        `json:"cursor"`
 }
@@ -110,6 +111,7 @@ type CreateMiniAppResponse struct {
 }
 
 type UpdateMiniAppRequest struct {
+	Id            string
 	Platform      string
 	BundleId      string
 	PackageName   string
@@ -120,7 +122,6 @@ type UpdateMiniAppRequest struct {
 	Icon          string
 	Version       string
 	Permissions   []string
-	Id            string
 }
 
 type UpdateMiniAppResponse struct {
